@@ -1,0 +1,2 @@
+That command answers the question: How many lines of the first twenty have the
+letter 'l' in them. In this case, the answer is 18!
