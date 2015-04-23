@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Basic -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Language" content="en">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta name="robots" content="index, follow, archive" />
+    <meta name="referrer" content="always" />
+
+    <!-- Content -->
+    <meta name="description" property="description"
+          content="" />
+    <meta name="author" content="Vikram Sreekanti" />
+
+    <title>week-10</title>
+
+    <!-- Includes -->
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/katex/build/katex/katex.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/katex/build/katex/katex.min.css" />
+
+<!-- Configure -->
+<script>var readyStateCheckInterval=setInterval(function(){if(document.readyState==="complete"){var e=document.getElementsByClassName("equation");Array.prototype.forEach.call(e,function(e){katex.render("\\displaystyle{"+e.getAttribute("data-expr")+"}",e)});clearInterval(readyStateCheckInterval)}},10)</script>
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript"
+        src="includes/d3/d3.min.js"></script>
+<script type="text/javascript"
+        src="includes/bootstrap/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript"
+        src="includes/metrics-graphics/js/metricsgraphics.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/bootstrap/dist/css/bootstrap.css" />
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/metrics-graphics/css/metricsgraphics.css" />
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/metrics-graphics/css/metricsgraphics-demo.css" />
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/prism/prism.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-bash.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-c.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-css.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-go.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-java.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-javascript.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-markup.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-perl.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-php.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-python.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-ruby.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-scala.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-sql.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/prism/themes/prism-okaidia.css" />
+</head>
+<body>
+    <article id="presentation">
+        <section >
+            <h1 id="cs-186-section-10-text-search--ranking">CS 186 Section 10: Text Search &amp; Ranking</h1>
+<p>Vikram Sreekanti</p>
+        </section>
+        <section >
+            <h1 id="boolean-text-search">Boolean Text Search</h1>
+
+<p><code>"CS 186" AND ("awesome" OR "cool") AND NOT ("hard")</code></p>
+
+<p>(This is [sort of] what a search engine does.)</p>
+        </section>
+        <section >
+            <h1 id="bag-of-words-model">Bag of Words Model</h1>
+
+<p>Every document is just a “bag of words”.</p>
+
+<ul>
+  <li>Key Idea 1: Stop Words
+    <ul>
+      <li>Disallow words that are nor helpful</li>
+      <li>e.g., “the”, <code>&lt;h1&gt;</code>, etc.</li>
+    </ul>
+  </li>
+  <li>Key Idea 2: Stemming
+    <ul>
+      <li>Use only the root of each word, not conjugated or tense-specific form.</li>
+      <li>e.g., “surf”, instead of “surfed” or “surfing”</li>
+    </ul>
+  </li>
+</ul>
+        </section>
+        <section >
+            <h1 id="relational-text-index">Relational Text Index</h1>
+
+<ul>
+  <li>Create a table: <code>InvertedFiles(term text, docId test)</code>.</li>
+  <li>Stores mappings: <code>"awesome" -&gt; "http://berkeley.edu"</code>.</li>
+  <li>Now allows you to do single word queries.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="expressing-boolean-logic">Expressing Boolean Logic</h1>
+
+<ol>
+  <li><code>"term1" OR "term2"</code>
+    <ul>
+      <li><code>UNION</code> of all docs containing term1 or term2</li>
+    </ul>
+  </li>
+  <li><code>"term1" AND "term2"</code>
+    <ul>
+      <li><code>INTERSECT</code> of term1 and term2</li>
+    </ul>
+  </li>
+  <li>How do you find <code>"term1" AND NOT "term2"</code>?
+    <ul>
+      <li>Set subtraction!</li>
+    </ul>
+  </li>
+</ol>
+        </section>
+        <section >
+            <h1 id="boolean-search-in-sql">Boolean Search in SQL</h1>
+
+<p>Query: <code>"Berkeley Database Research"</code></p>
+
+<pre><code class="language-sql">SELECT B.docId
+FROM InvertedFile B, InvertedFile D, InvertedFile R
+WHERE B.docId = D.docId AND D.docId = R.docId
+  AND B.term = "Berkeley"
+  AND D.term = "Database"
+  AND R.term = "Research"
+ORDER BY ranking_function();
+</code></pre>
+        </section>
+        <section >
+            <h1 id="boolean-search-in-sql">Boolean Search in SQL</h1>
+
+<p>Query: <code>"CS 186" AND ("awesome" OR "cool") AND NOT ("hard")</code></p>
+
+<pre><code class="language-sql">SELECT docID FROM InvertedFile
+    WHERE word = "CS 186"
+INTERSECT
+SELECT docID FROM InvertedFile
+    WHERE word = "awesome" OR word = "cool"
+EXCEPT
+SELECT docID FROM InvertedFile
+    WHERE word = "hard"
+ORDER BY ranking_function();
+</code></pre>
+        </section>
+        <section >
+            <h1 id="phrases-and-near">Phrases and NEAR</h1>
+
+<ul>
+  <li>Key idea: Also store the position of each word.</li>
+  <li>When you search “some phrase”, you keep results where positions are 1 off.</li>
+  <li>If you want <code>"term1" NEAR "term2"</code>, you want <code>pos_diff &lt; k</code>.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="text-search-exercises">Text Search Exercises</h1>
+
+<p>Which of these terms would appear in our bag of words if we are “stemming and stopping”?</p>
+
+<ul>
+  <li>&lt; head &gt;</li>
+  <li>headers</li>
+  <li>lugubrious</li>
+  <li>of</li>
+  <li>nincompoop</li>
+  <li>&amp;</li>
+  <li>an</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="text-search-exercises">Text Search Exercises</h1>
+
+<p>Which of these terms would appear in our bag of words if we are “stemming and stopping”?</p>
+
+<ul>
+  <li>&lt; head &gt;</li>
+  <li>headers</li>
+  <li>
+    <font color="red">lugubrious</font>
+  </li>
+  <li>of</li>
+  <li>
+    <font color="red">nincompoop</font>
+  </li>
+  <li>&amp;</li>
+  <li>an</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="text-search-exercises">Text Search Exercises</h1>
+
+<p>Which of the following are true about query plans for <i>conjunctive</i> boolean text search?</p>
+
+<ul>
+  <li>It can be expressed using only inner joins.</li>
+  <li>It must be left-deep.</li>
+  <li>It must be expressed using only <code>UNION</code>s.</li>
+  <li>It must be either right-deep or left-deep.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="text-search-exercises">Text Search Exercises</h1>
+
+<p>Which of the following are true about query plans for <i>conjunctive</i> boolean text search?</p>
+
+<ul>
+  <li>
+    <font color="red"> It can be expressed using only inner joins. </font>
+  </li>
+  <li>It must be left-deep.</li>
+  <li>It must be expressed using only <code>UNION</code>s.</li>
+  <li>It must be either right-deep or left-deep.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="some-ir-keywords">Some IR Keywords</h1>
+
+<ul>
+  <li><i>Corpus</i>: A collection of documents.</li>
+  <li><i>Term</i>: An isolated string (the unit of searches).</li>
+  <li><i>Index</i>: A mechanism to map terms to documents.</li>
+  <li><i>Inverted File</i>: A file containing terms and associated <i>postings lists</i>.</li>
+  <li><i>Postings List</i>: A list of pointers to documents.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="classical-ir-ranking">“Classical” IR Ranking</h1>
+
+<ul>
+  <li>Every document can be represented in the space of all possible terms.
+    <ul>
+      <li>i.e., If there are 10,000 unique words, then every document can be represented by a vector in 10,000-d.</li>
+    </ul>
+  </li>
+  <li>Similarity of docs is the vector distance between the two.</li>
+</ul>
+
+<p>(See lecture slides for more details on the calculation of the distance.)</p>
+        </section>
+        <section >
+            <h1 id="font-colorbluetffontfont-color--redidffont"><font color="blue">TF</font><font color="red">IDF</font></h1>
+
+<p>TF is <i>term frequency</i>. It is the number of occurrences of a word in a document.</p>
+
+<p>IDF is <i>inverse document frequency</i>. It’s the log of the total number of documents divided by the number of documents with this term.</p>
+        </section>
+        <section data-hyhyhy-state='katex'>
+            <div class="equation" data-expr="TF = countif(document,\ '=term')"></div>
+        </section>
+        <section data-hyhyhy-state='katex'>
+            <div class="equation" data-expr="IDF = log \left( \frac {num\_docs}{num\_docs\_with\_term} \right)"></div>
+        </section>
+        <section >
+            <h1 id="indexing-tfidf">Indexing TFIDF</h1>
+
+<p>Add another table to our schema: <code>TermInfo (string text, numDocs int)</code>.</p>
+
+<p>This is the denominator of IDF. (Aside: This is a <i>materialized view</i>.)</p>
+
+<p>We can also store <code>DocTermRank float</code> in our inverted file. That is, store the TFIDF of each word in each file.</p>
+        </section>
+        <section >
+            <h1 id="tfidf-exercises">TFIDF Exercises</h1>
+
+<p><code>TermInfo(term string, numDocs int)</code><br />
+<code>InvertedFile(term string, docID int, DocTermRank float)</code></p>
+
+<p>Assume that ints and floats both require 4 bytes, and strings require 20 bytes. <br />
+Assume that there are 100,000 documents in the collection, 250,000 unique words, and that the average word appears in 100 documents.</p>
+
+<p>How big are each of the tables in bytes?</p>
+        </section>
+        <section >
+            <p><code>TermInfo = 250,000 words x (20 bytes per term + 4 bytes for num) = 6,000,000 bytes</code>.</p>
+        </section>
+        <section >
+            <p><code>InvertedFile = 28 bytes per row * (250,000 words * 100 docs per word) = 700,000,000 bytes</code>.</p>
+        </section>
+        <section >
+            <h1 id="tfidf-exercises">TFIDF Exercises</h1>
+
+<p>Consider these two documents:</p>
+
+<p><img class="bullet" src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-03%20at%201.29.38%20AM.png" style="width: 250px; height: 130px; margin-bottom: 50px;" /></p>
+
+<p>What is the TFIDF of <i>this</i> in Document 1?</p>
+
+<p>What is the TFIDF of <i>example</i> in Document 2?</p>
+        </section>
+        <section >
+            <pre><code>TF("this", 1) = 3
+IDF("this") = log(2/2) = 0
+TFIDF("this", 1) = 0
+</code></pre>
+        </section>
+        <section >
+            <pre><code>TF("example", 2) = 3
+IDF("example") = log(2/1) = 0.30
+TFIDF("example", doc2) = .90
+</code></pre>
+        </section>
+        <section >
+            <p>In general, what is characteric of a term-document pair that has a TFIDF of 0?</p>
+        </section>
+        <section >
+            <p>IDF must be 0, so the term must appear in all documents.</p>
+        </section>
+        <section >
+            <h1 id="tfidf-exercises">TFIDF Exercises</h1>
+
+<p>Suppose we are computing a web search results page (for example, on AskJeeves.com), and we’ve found the ranked list of DocIDs. Our last step is to join with the Docs table to return the actual contents of the pages.</p>
+
+<p>Which of the following techniques do we want to use for this join?</p>
+
+<ul>
+  <li>Sort-Merge Join</li>
+  <li>Nested Loops Join</li>
+  <li>Hash Join</li>
+  <li>Index Nested Loops Join</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="tfidf-exercises">TFIDF Exercises</h1>
+
+<p>Suppose we are computing a web search results page (for example, on AskJeeves.com), and we’ve found the ranked list of DocIDs. Our last step is to join with the Docs table to return the actual contents of the pages.</p>
+
+<p>Which of the following techniques do we want to use for this join?</p>
+
+<ul>
+  <li>Sort-Merge Join</li>
+  <li>Nested Loops Join</li>
+  <li>Hash Join</li>
+  <li>
+    <font color="red">Index Nested Loops Join</font>
+  </li>
+</ul>
+        </section>
+        <section >
+            <h1 id="why">Why?</h1>
+        </section>
+        <section >
+            <ul>
+  <li>INLJ is a streaming algorithm, so we aren’t required to read the entire documents table.</li>
+  <li>INLJ is lazy, so we can return requests as they are requests (think pagination).</li>
+  <li>Easy to parallelize!</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="classical-ranking-exercise">Classical Ranking Exercise</h1>
+
+<p>Suppose we have three documents in our corpus, described by the following vectors:</p>
+
+<pre><code>Document 1: &lt;6, 8, 0, 0&gt;
+Document 2: &lt;0, 0, 24, 10&gt;
+Document 3: &lt;0, 0, 3, 4&gt;
+</code></pre>
+
+<p>Why is it important to normalize our vectors?</p>
+        </section>
+        <section >
+            <p>Ranking becomes biased by document lengths without normaliztion. Longer documents are more similar than shorter ones.</p>
+
+<p><code>cos</code> similarity becomes easier to compute.</p>
+
+<p>Suppose we make a query described by the vector: <code>&lt;1, 0, 2, 2&gt;</code>. In what order will these documents be ranked?</p>
+
+<p>Corpus:</p>
+
+<pre><code>Document 1: &lt;6, 8, 0, 0&gt;
+Document 2: &lt;0, 0, 24, 10&gt;
+Document 3: &lt;0, 0, 3, 4&gt;
+</code></pre>
+        </section>
+        <section >
+            <p>Normalized Vectors:</p>
+
+<pre><code>Document 1: &lt;.6, .8, 0, 0&gt;
+Document 2: &lt;0, 0, .92, .38&gt;
+Document 3: &lt;0, 0, .6, .8&gt;
+Query: &lt;.33, 0, .67, .67&gt;
+</code></pre>
+        </section>
+        <section >
+            <p>If you compute the dot products…</p>
+
+<p>Ranking: 3, 2, 1.</p>
+        </section>
+        <section >
+            <h1 id="miscellaneous-exercises">Miscellaneous Exercises</h1>
+
+<p>What are the pros and cons of partitioning our inverted files by term?</p>
+        </section>
+        <section >
+            <p>Pros:</p>
+
+<ul>
+  <li>Not all machines work on every query.</li>
+  <li>Allows for more parallelism.</li>
+</ul>
+
+<p>Cons:</p>
+
+<ul>
+  <li>Terms are non-uniformly distributed.</li>
+  <li>Load-balancing will be poor.</li>
+</ul>
+        </section>
+        <section >
+            <p>What are the pros and cons of partitioning by document?</p>
+        </section>
+        <section >
+            <p>Pros:</p>
+
+<ul>
+  <li>Easy to uniformly distribute all documents and load balance.</li>
+</ul>
+
+<p>Cons:</p>
+
+<ul>
+  <li>All machines must work on every query.</li>
+  <li>You have to wait for results before answering the query.</li>
+</ul>
+        </section>
+    </article>
+
+    <!-- Stylesheets -->
+    <link media="all" rel="stylesheet" type="text/css"
+          href="stylesheets/main.css" />
+
+    <!-- Javascripts -->
+    <script type="text/javascript" src="javascripts/main.js"></script>
+    <script>hyhyhy.from('#presentation', { bullets: "ol li, .bullet", hash: true, keys: true, fullscreen: true, progress: true, scale: true, state: true, touch: true });</script>
+</body>
+</html>
