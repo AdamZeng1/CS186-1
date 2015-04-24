@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Basic -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Language" content="en">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta name="robots" content="index, follow, archive" />
+    <meta name="referrer" content="always" />
+
+    <!-- Content -->
+    <meta name="description" property="description"
+          content="" />
+    <meta name="author" content="Vikram Sreekanti" />
+
+    <title>week 13</title>
+
+    <!-- Includes -->
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/katex/build/katex/katex.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/katex/build/katex/katex.min.css" />
+
+<!-- Configure -->
+<script>var readyStateCheckInterval=setInterval(function(){if(document.readyState==="complete"){var e=document.getElementsByClassName("equation");Array.prototype.forEach.call(e,function(e){katex.render("\\displaystyle{"+e.getAttribute("data-expr")+"}",e)});clearInterval(readyStateCheckInterval)}},10)</script>
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript"
+        src="includes/d3/d3.min.js"></script>
+<script type="text/javascript"
+        src="includes/bootstrap/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript"
+        src="includes/metrics-graphics/js/metricsgraphics.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/bootstrap/dist/css/bootstrap.css" />
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/metrics-graphics/css/metricsgraphics.css" />
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/metrics-graphics/css/metricsgraphics-demo.css" />
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/prism/prism.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-bash.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-c.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-css.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-go.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-java.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-javascript.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-markup.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-perl.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-php.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-python.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-ruby.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-scala.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-sql.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/prism/themes/prism-okaidia.css" />
+</head>
+<body>
+    <article id="presentation">
+        <section >
+            <h1 id="cs-186-section-13-advanced-concurrency-control">CS 186 Section 13: Advanced Concurrency Control</h1>
+
+<p>Vikram Sreekanti</p>
+        </section>
+        <section >
+            <h1 id="multiple-granularity-locking">Multiple Granularity Locking</h1>
+
+<ul>
+  <li>Each transaction starts from the root of the hierarchy.</li>
+  <li>To get an <code>S</code> or <code>IS</code> lock on a node, must get <code>IS</code> or <code>IX</code> on the parent.</li>
+  <li>To get an <code>X</code>, <code>IX</code>, or <code>SIX</code> lock on a node, must have a <code>IX</code> or <code>SIX</code> lock on parent.</li>
+  <li>Release locks in bottom up order.</li>
+</ul>
+
+<p><img class="bullet" src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%202.35.29%20PM.png" /></p>
+        </section>
+        <section >
+            <ul>
+  <li>An <code>IS</code> (“intention for shared”) lock means you will get a shared lock at a finer granularity.</li>
+  <li>An <code>IX</code> (“intention for exclusive”) lock means you will get an exclusive lock at a finer granularity.</li>
+  <li>An <code>SIX</code> (“shared and intention for exclusive lock”) means you want a <code>S</code> lock and an <code>IX</code> lock at this level.</li>
+</ul>
+        </section>
+        <section >
+            <p>Suppose a transaction, <code>T1</code>, wants to scan a table <code>R</code> and update a few of its tuples. What kind of locks should <code>T1</code> have on <code>R</code>, its pages, and the tuples that are updated?</p>
+        </section>
+        <section >
+            <p><code>T1</code> would obtain a <code>SIX</code> lock on <code>R</code> and its pages; it would obtain an <code>X</code> lock on the updated tuples.</p>
+        </section>
+        <section >
+            <p>Is an <code>S</code> lock compatible with an <code>IX</code> lock? Explain why or why not. Make your description as simple as possible.</p>
+        </section>
+        <section >
+            <p>No. If one transaction has a shared lock on some piece of data, that means it intends to read the whole thing. If another transactions wants an <code>IX</code> lock on that same object, that means it wants to change some of the data held by that object. This means the first transaction will read some data while the second transaction writes, which means the two locks must be incompatible.</p>
+        </section>
+        <section >
+            <h1 id="concurrent-btrees">Concurrent B+Trees</h1>
+
+<p>2-phase locking doesn’t work on B+Trees – Why?</p>
+
+<p>Instead, we’re going to use latches: You get a latch on node <code>N</code>, then latch on child <code>C</code> of node <code>N</code>, then release latch on node <code>N</code>.</p>
+
+<p>Question: When do you release lock on the leaf?</p>
+        </section>
+        <section >
+            <h1 id="b-link-trees">B-Link Trees</h1>
+
+<p>The main idea here is that the concurrent node splits are not problematic; you instead just store a pointer your right “twin” go right instead of latching on reads.</p>
+
+<p>Thus, you only need to latch on writes. Reads are “free”.</p>
+
+<p>See lecture slides for how to do insertions.</p>
+        </section>
+        <section >
+            <p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%208.40.23%20PM.png" /></p>
+
+<p><code>T1</code> is trying to find 24 in the above B-link tree. However, after reading the page in the second layer of the tree, insertions for 17, 20, 23 are committed. The new tree is shown below. After this point, how many pages will be read to find the entry for 24? How many latches did <code>T1</code> have to make? Assume when splitting, we allocate a new page for the right node.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%208.40.35%20PM.png" /></p>
+        </section>
+        <section >
+            <p>4 reads, 0 latches. Before all of the transactions commit, <code>T1</code> is told that the leaf containing 24 is in the page that now contains the entry 17. <code>T1</code> reads this leaf page, and must follow the right-pointers for three more pages until it sees 24. Reads don’t make latches.</p>
+        </section>
+        <section >
+            <p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%208.40.23%20PM.png" /></p>
+
+<p>Now, <code>T1</code> wants to insert 99 in the original tree. However, right after <code>T1</code> reaches the leaf level, insertions for 34, 35, and 36 are committed. How many latches must <code>T1</code> make after this point to complete the insertion (not including the latch on the current leaf node)?</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%208.41.00%20PM.png" /></p>
+        </section>
+        <section >
+            <p>3 latches. <code>T1</code> keeps a pointer to its parent node (containing keys for 63 and 100) on its stack. However, when the insertions are committed, this node is split, so it only contains a key for 33. Since <code>T1</code> will split a leaf, it must copy a key up to its parent. T1 will get a latch on that node, but will see that this node is not the right node to copy its key. It must move right until it reaches the correct node to place its key, which is the rightmost node at that level (containing a key for 100).</p>
+        </section>
+        <section >
+            <h1 id="the-phantom-problem">The Phantom Problem</h1>
+
+<p>Example: When you do a range query, you will do tuple-level locks on all tuples in that range. If I insert another tuple in that range once you’ve started and then run the query again, I will find a “phanton”.</p>
+
+<p>Solution: next-key locking.</p>
+
+<p>When you try to lock on a value, if you don’t find it, you lock on the next higher value. Every lock effectively becomes a range lock.</p>
+        </section>
+        <section >
+            <h1 id="to-mvcc">TO-MVCC</h1>
+
+<p>“Timestamp-Ordered Multiversion Concurrency Control”.</p>
+
+<p>Main ideas:</p>
+
+<ul>
+  <li>Each transaction gets a unique timestamp.</li>
+  <li>For each data item maintain:
+    <ul>
+      <li>a set of read timestamps</li>
+      <li>a set of version ( {write timestamp, value} )</li>
+    </ul>
+  </li>
+  <li>Reads always succeed: You read the latest timestamp that is less than your transaction’s timestamp.</li>
+  <li>Writes fail if there is a read timestamp that happened after this transactions timestamp before this transaction actually did a write.
+    <ul>
+      <li>i.e., you can’t change the past!</li>
+    </ul>
+  </li>
+</ul>
+        </section>
+        <section >
+            <p>For the given timeline of timestamps for a value X, fill out the rest of the timeline for the following reads and writes: <code>R(X)@17, W(X)@18, W(X)@14, W(X)@12, R(X)@20, R(X)@19, R(X)@23, W(X)@26, W(X)@24</code>.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%209.48.31%20PM.png" /></p>
+        </section>
+        <section >
+            <p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-23%20at%209.49.21%20PM.png" /></p>
+        </section>
+        <section >
+            <h1 id="phase-commit">2-Phase Commit</h1>
+
+<ul>
+  <li>Phase 1: Coordinator sends “prepare” message.
+    <ul>
+      <li>Participants respond with yes or no.</li>
+      <li>Must be uninamous with ‘yes’.</li>
+    </ul>
+  </li>
+  <li>Phase 2: Coordinator sends out results of vote.
+    <ul>
+      <li>If all say yes, the commit.</li>
+      <li>Else, all abort.</li>
+    </ul>
+  </li>
+</ul>
+        </section>
+        <section >
+            <h1 id="weak-isolation">Weak Isolation</h1>
+
+<p>Motivation: Transactions can be too expensive and/or too restrictive.</p>
+
+<p>SQL Standard Isolation Levels:</p>
+
+<ul>
+  <li><em>Read uncommitted</em>: Read dirty data. No locks on read.</li>
+  <li><em>Read committed</em>: Read only committed data. Unlock immediately after read.</li>
+  <li><em>Cursor stability</em>: reads are consistent while app works. Unlock object when moving to next.</li>
+  <li><em>Repeatable read</em>: If you read an item twice in a transaction, you get the same values. Hold read locks till end of the transaction.</li>
+  <li><em>Serializable</em>: Strict 2PL.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="snapshot-isolation">Snapshot Isolation</h1>
+
+<p>Main idea: All reads made during a transaction start from the same point (in transactional time).</p>
+
+<p>The transaction aborts if its writes conflict with any writes that happened since the start of the transaction.</p>
+
+<p>One way to think about it: Every transaction gets a “snapshot” of the database. When transactions are finished, they attempt to merge their results back into the database. A transaction fails if there are any “merge conflicts”.</p>
+        </section>
+        <section >
+            <p>Consider a table with the following schema: <code>Tasks ( task varchar(50), assignee varchar(50) )</code>. The table must fulfill the constraint that there can never be more than three tasks.</p>
+
+<p>Initially, we start with two entries: <code>B: Bob; A: Alice</code>.</p>
+
+<p>Suppose we want to run the following transactions concurrently:</p>
+
+<ul>
+  <li><code>T1</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘C’, ‘Alice’);</code></li>
+  <li><code>T2</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘D’, ‘Bob’);</code></li>
+  <li><code>T3</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘E’, ‘Alice’);</code></li>
+</ul>
+
+<p>Is the following outcome possible with <em>serializable</em> concurrency or <em>snapshot isolation</em>: <code>B: Bob, A: Alice, D: Bob</code>?</p>
+        </section>
+        <section >
+            <p>Yes, this is equivalent to running <code>T2</code> first, then aborting <code>T1</code> and <code>T3</code> (since the database is “full”). This same logic applies for <em>snapshot isolation</em>.</p>
+        </section>
+        <section >
+            <p>Consider a table with the following schema: <code>Tasks ( task varchar(50), assignee varchar(50) )</code>. The table must fulfill the constraint that there can never be more than three tasks.</p>
+
+<p>Initially, we start with two entries: <code>B: Bob; A: Alice</code>.</p>
+
+<p>Suppose we want to run the following transactions concurrently:</p>
+
+<ul>
+  <li><code>T1</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘C’, ‘Alice’);</code></li>
+  <li><code>T2</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘D’, ‘Bob’);</code></li>
+  <li><code>T3</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘E’, ‘Alice’);</code></li>
+</ul>
+
+<p>Is the following outcome possible with <em>serializable</em> concurrency or <em>snapshot isolation</em>: <code>B: Bob, A: Alice, D: Bob, E: Alice</code>?</p>
+        </section>
+        <section >
+            <p><em>Serializable</em>: No; this would require two transactions to commit serially, which would not be allowed.</p>
+
+<p><em>Snapshot Isolation</em>: Yes; two transactions will see a snapshot with two entries and insert their new data. This does not cause a write-write conflict, so they both commit. The third request aborts.</p>
+        </section>
+        <section >
+            <p>Consider a table with the following schema: <code>Tasks ( task varchar(50), assignee varchar(50) )</code>. The table must fulfill the constraint that there can never be more than three tasks.</p>
+
+<p>Initially, we start with two entries: <code>B: Bob; A: Alice</code>.</p>
+
+<p>Suppose we want to run the following transactions concurrently:</p>
+
+<ul>
+  <li><code>T1</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘C’, ‘Alice’);</code></li>
+  <li><code>T2</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘D’, ‘Bob’);</code></li>
+  <li><code>T3</code>: <code>INSERT INTO Tasks (task, assignee) VALUES (‘E’, ‘Alice’);</code></li>
+</ul>
+
+<p>Is the following outcome possible with <em>serializable</em> concurrency or <em>read uncommitted</em>: <code>B: Bob, A: Alice</code>?</p>
+        </section>
+        <section >
+            <p><em>Serializable</em>: This requires no transactions to commit, which cannot happen in a serial order – one is guaranteed to succeed.</p>
+
+<p><em>Read uncommitted</em>: Yes; each transaction simultaneously reads and adds. Then they check to see how many rows are in the databse. Since they can read uncommitted data, they each find 5 rows and all abort their transactions.</p>
+        </section>
+    </article>
+
+    <!-- Stylesheets -->
+    <link media="all" rel="stylesheet" type="text/css"
+          href="stylesheets/main.css" />
+
+    <!-- Javascripts -->
+    <script type="text/javascript" src="javascripts/main.js"></script>
+    <script>hyhyhy.from('#presentation', { bullets: "ol li, .bullet", hash: true, keys: true, fullscreen: true, progress: true, scale: true, state: true, touch: true });</script>
+</body>
+</html>
