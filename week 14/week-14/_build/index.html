@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Basic -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Language" content="en">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta name="robots" content="index, follow, archive" />
+    <meta name="referrer" content="always" />
+
+    <!-- Content -->
+    <meta name="description" property="description"
+          content="" />
+    <meta name="author" content="Vikram Sreekanti" />
+
+    <title>week-14</title>
+
+    <!-- Includes -->
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/katex/build/katex/katex.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/katex/build/katex/katex.min.css" />
+
+<!-- Configure -->
+<script>var readyStateCheckInterval=setInterval(function(){if(document.readyState==="complete"){var e=document.getElementsByClassName("equation");Array.prototype.forEach.call(e,function(e){katex.render("\\displaystyle{"+e.getAttribute("data-expr")+"}",e)});clearInterval(readyStateCheckInterval)}},10)</script>
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript"
+        src="includes/d3/d3.min.js"></script>
+<script type="text/javascript"
+        src="includes/bootstrap/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript"
+        src="includes/metrics-graphics/js/metricsgraphics.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/bootstrap/dist/css/bootstrap.css" />
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/metrics-graphics/css/metricsgraphics.css" />
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/metrics-graphics/css/metricsgraphics-demo.css" />
+        <!-- Javascripts -->
+<script type="text/javascript"
+        src="includes/prism/prism.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-bash.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-c.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-css.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-go.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-java.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-javascript.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-markup.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-perl.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-php.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-python.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-ruby.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-scala.min.js"></script>
+<script type="text/javascript"
+        src="includes/prism/components/prism-sql.min.js"></script>
+
+<!-- Stylesheets -->
+<link media="all" rel="stylesheet" type="text/css"
+      href="includes/prism/themes/prism-okaidia.css" />
+</head>
+<body>
+    <article id="presentation">
+        <section >
+            <h1 id="cs-186-section-14-recovery">CS 186 Section 14: Recovery</h1>
+
+<p>Vikram Sreekanti</p>
+        </section>
+        <section >
+            <h1 id="motivation-and-assumptions-for-recovery">Motivation and Assumptions for Recovery</h1>
+
+<p>Motivation:</p>
+
+<ul>
+  <li>Atomicity: If you crash during a transaction, you should not commit commit half-changed data.</li>
+  <li>Durability: What happens if DBMS stops running before committed data gets written to disk?</li>
+</ul>
+
+<p>Assumptions:</p>
+
+<ul>
+  <li>Strict 2PL.</li>
+  <li>Updates happen in place.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="the-role-of-buffer-management">The Role of Buffer Management</h1>
+
+<p><code>FORCE</code>: Every update is written to disk before <code>COMMIT</code>.<br />
+<code>STEAL</code>: Don’t allow uncommitted data to be written to disk.</p>
+
+<p>We use <code>STEAL</code> / <code>NO FORCE</code>. Hardest to implement but highest performance.</p>
+
+<p>Significantly complicates recovery.</p>
+        </section>
+        <section >
+            <h1 id="write-ahead-logging">Write-Ahead Logging</h1>
+
+<ol>
+  <li>Must force log record to disk before corresponding data page is written to disk. Guarantees atomicity.</li>
+  <li>Must force <em>all</em> log records to disk before <code>COMMIT</code>. Guarantees durability.</li>
+</ol>
+        </section>
+        <section >
+            <h1 id="write-ahead-logging">Write-Ahead Logging</h1>
+
+<ul>
+  <li>Every log record gets an <code>LSN</code>.</li>
+  <li>Each data page has a <code>pageLSN</code>: the <code>LSN</code> of the most recent log record for an update to that page.</li>
+  <li><code>flushedLSN</code>: the maximum <code>LSN</code> flushed to disk thus far.</li>
+  <li><code>prevLSN</code>: the previous <code>LSN</code> written by this transaction.</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="write-ahead-logging">Write-Ahead Logging</h1>
+
+<p>Other state maintained in memory:</p>
+
+<ul>
+  <li>Transaction Table (TT): contains <code>XID</code>, <code>status</code>, and <code>lastLSN</code> for each transaction.</li>
+  <li>Dirty Page Table (DPT): contains <code>recLSN</code> (the <em>first</em> LSN that dirtied this page).</li>
+</ul>
+        </section>
+        <section >
+            <h1 id="regular-transaction-commit">Regular Transaction Commit</h1>
+
+<ol>
+  <li>Write <code>COMMIT</code> record to log.</li>
+  <li>All log records up until this <code>COMMIT</code> is flushed to disk.</li>
+  <li>Write <code>END</code> record to log.</li>
+</ol>
+        </section>
+        <section >
+            <h1 id="regular-transaction-abort">Regular Transaction Abort</h1>
+
+<ol>
+  <li>Get <code>lastLSN</code> of transaction from your transaction table.</li>
+  <li>Write <code>ABORT</code> log record <em>before</em> undoing any actions.</li>
+  <li>Follow chain of actions back via <code>prevLSN</code>.</li>
+  <li>Write a <code>CLR</code> for each action undone.
+    <ul>
+      <li><code>CLR</code> has an <code>undoNextLSN</code>: <code>prevLSN</code> of the <code>LSN</code> we just undid.</li>
+    </ul>
+  </li>
+</ol>
+        </section>
+        <section >
+            <h1 id="checkpointing">Checkpointing</h1>
+
+<p>Periodically, DBMS writes a checkpoint to the log.</p>
+
+<p>What it writes:</p>
+
+<ol>
+  <li><code>BEGIN CHECKPOINT</code></li>
+  <li><code>END CHECKPOINT</code>
+    <ul>
+      <li>Contains the DPT and TT.</li>
+      <li>Only accurate as of <code>BEGIN CHECKPOINT</code> because other transactions are running while the checkpoint happens.</li>
+    </ul>
+  </li>
+</ol>
+        </section>
+        <section >
+            <h1 id="aries">ARIES</h1>
+
+<p>Recovery algorithm that came out of IBM Almaden in the late 80s and early 90s. Became the golden standard for rDBMS recovery.</p>
+
+<p>Three phases:</p>
+
+<ol>
+  <li>Analysis phase.</li>
+  <li>Redo phase.</li>
+  <li>Undo phase.</li>
+</ol>
+        </section>
+        <section >
+            <h1 id="analysis">Analysis</h1>
+
+<p>Repopulate DPT and TT from last checkpoint.</p>
+
+<p>Scan the log forward from the checkpoint. If you see an…</p>
+
+<ul>
+  <li><code>END</code> record, remove that transaction from the TT.</li>
+  <li>any other record, add the transaction to the TT, and set <code>lastLSN = LSN</code>.</li>
+  <li><code>COMMIT</code> records change status of transaction.</li>
+</ul>
+
+<p>At the end of Analysis, the TT contains all transactions that were active at the last log flush before crash.</p>
+
+<p>The DPT says which pages <em>might not</em> have made it to disk.</p>
+        </section>
+        <section >
+            <h1 id="redo">Redo</h1>
+
+<p>Repeat history to reconstruct state at the time of the crash.</p>
+
+<p>Scan forward from the smallest <code>recLSN</code> in the DPT. If you see an…</p>
+
+<ul>
+  <li><code>UPDATE</code> or <code>CLR</code>, redo the action, <em>unless</em>
+    <ul>
+      <li>the affected page is not in the DPT.</li>
+      <li>the affect page is in the DPT, but <code>recLSN &gt; LSN</code>.</li>
+      <li><code>pageLSN ≥ LSN</code> (in the database)</li>
+    </ul>
+  </li>
+</ul>
+
+<p>To redo an action, reapply the logged action and set <code>pageLSN = LSN</code>.</p>
+        </section>
+        <section >
+            <h1 id="undo">Undo</h1>
+
+<p>The transactions remaining in the TT are “losers”; they must be aborted and undone.</p>
+
+<p><code>ToUndo = {lastLSN of each transaction in TT}</code></p>
+
+<p>Repeat until <code>ToUndo</code> is empty:</p>
+
+<ul>
+  <li>Remove the largest <code>lastLSN</code> from <code>ToUndo</code>.</li>
+  <li>If <code>LSN</code> is a <code>CLR</code>:
+    <ul>
+      <li>and <code>undoNextLSN</code> is <code>NULL</code>, write an <code>END</code> records for this transaction.</li>
+      <li>and <code>undoNextLSN</code> is not <code>NULL</code>, andd <code>undoNextLSN</code> to <code>ToUndo</code>.</li>
+    </ul>
+  </li>
+  <li>Else, it is an <code>UPDATE</code> record. Undo it, write a <code>CLR</code>, and add <code>prevLSN</code> to <code>ToUndo</code>.</li>
+</ul>
+        </section>
+        <section >
+            <p>After a database crash, you find the following database log, transaction table, and dirty page table.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-30%20at%207.53.57%20PM.png" style="width:316px; height=225px" /></p>
+
+<p>The log record at LSN 60 says that transaction 2 updated page 5. Was this update to page 5 successfully written to disk? The log record at LSN 70 says that transaction 1 updated page 2. Was this update to page 2 successfully written to disk?</p>
+        </section>
+        <section >
+            <p>The update at <code>LSN 60</code> <em>may</em> have been written to disk. The log entry was flushed before the write itself.</p>
+
+<p>The page was not yet flushed at the time of the checkpoint, but may have flushed later, because of the <code>NO FORCE</code> policy. The update at <code>LSN 70</code> was flushed to disk because P2 was not in the dirty page table at the time of the checkpoint.</p>
+        </section>
+        <section >
+            <p>After a database crash, you find the following database log, transaction table, and dirty page table.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-30%20at%207.53.57%20PM.png" style="width:316px; height=225px" /></p>
+
+<p>At the end of the analysis phase, what transactions will be in the transaction table, and what pages will be in the dirty page table?</p>
+        </section>
+        <section >
+            <p>Transaction Table:</p>
+
+<ol>
+  <li><code>T1</code>: 90, Running</li>
+  <li><code>T3</code>: 30, Running</li>
+  <li><code>T4</code>: 180, Aborting</li>
+  <li><code>T5</code>: 160, Running</li>
+</ol>
+
+<p>Dirty Page Table:</p>
+
+<ol>
+  <li><code>P1</code>: 40</li>
+  <li><code>P2</code>: 160</li>
+  <li><code>P3</code>: 90</li>
+  <li><code>P4</code>: 50</li>
+</ol>
+        </section>
+        <section >
+            <p>After a database crash, you find the following database log, transaction table, and dirty page table.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-30%20at%207.53.57%20PM.png" style="width:316px; height=225px" /></p>
+
+<p>At which LSN in the log should redo begin? Which log records will be redone (list their LSNs)? All other log records will be skipped.</p>
+        </section>
+        <section >
+            <ol>
+  <li>Start from <code>LSN 40</code>, the smallest <code>LSN</code> in the dirty page table.</li>
+  <li>The following should be redone: <code>40, 50, 60, [80], 90, [100], 110, [120], 130, [140], [150], 160, 180</code>. <code>LSN 30</code> is skipped because <code>30 &lt; 40</code>. <code>LSN 70</code> is skipped because <code>P2.recLSN = 160 &gt; 70</code>.</li>
+</ol>
+        </section>
+        <section >
+            <p>After a database crash, you find the following database log. The transaction table and dirty page table are empty.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-30%20at%208.08.13%20PM.png" /></p>
+
+<p>During Analysis, what log records are read? What are the contents of the transaction table and the dirty page table at the end of the analysis stage?</p>
+        </section>
+        <section >
+            <p>All records (since the last checkpoint) are read. We read through the log forwards and add entries to the transaction table and the dirty page table. Note that lastLSN is the last LSN written by a transaction, while recLSN is the LSN which first caused a page to be dirty.</p>
+
+<p>Transaction Table:</p>
+
+<ol>
+  <li><code>T3</code>: 70, Running</li>
+  <li><code>T2</code>: 80, Aborting</li>
+</ol>
+
+<p>Dirty Page Table:</p>
+
+<ol>
+  <li><code>P1</code>: 10</li>
+  <li><code>P2</code>: 70</li>
+  <li><code>P3</code>: 20</li>
+  <li><code>P4</code>: 40</li>
+</ol>
+        </section>
+        <section >
+            <p>After a database crash, you find the following database log. The transaction table and dirty page table are empty.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-30%20at%208.08.13%20PM.png" /></p>
+
+<p>During Redo, what log records are read? What data pages are read? What operations are redone (assuming no updates made it out to disk before the crash)?</p>
+        </section>
+        <section >
+            <ul>
+  <li>Redo starts at LSN 10 (smallest recLSN).</li>
+  <li>All pages in the dirty page table are read from disk (i.e. P1, P2, P3, P4).</li>
+  <li>Assuming no updates made it to disk, all updates and CLR’s are redone. The LSN’s of these operations are: 10, 20, 40, 50, 70.</li>
+</ul>
+        </section>
+        <section >
+            <p>After a database crash, you find the following database log. The transaction table and dirty page table are empty.</p>
+
+<p><img src="https://dl.dropboxusercontent.com/u/258937/hyhyhy/Screen%20Shot%202015-04-30%20at%208.08.13%20PM.png" /></p>
+
+<p>During Undo, what log records are read? What operations are undone? Show any new log records that are written for CLR’s. Start at LSN 100. Be sure to show the undoNextLSN.</p>
+        </section>
+        <section >
+            <p>The lastLSN’s in the transaction table are 80 and 70. Starting from here, we will read: 80, 70, 50, 40, 20. Of these, the update operations are: 70, 50, 40, 20. Therefore, the new log records are:</p>
+
+<ol>
+  <li><code>LSN 100</code>: CLR T3 LSN = 70; undoNextLSN = 40</li>
+  <li><code>LSN 110</code>: CLR T2 LSN = 50; undoNextLSN = 20</li>
+  <li><code>LSN 120</code>: CLR T3 LSN = 40; undoNextLSN = null</li>
+  <li><code>LSN 130</code>: T3 end</li>
+  <li><code>LSN 140</code>: CLR T2 LSN = 20; undoNextLSN = null</li>
+  <li><code>LSN 150</code>: T2 end</li>
+</ol>
+        </section>
+    </article>
+
+    <!-- Stylesheets -->
+    <link media="all" rel="stylesheet" type="text/css"
+          href="stylesheets/main.css" />
+
+    <!-- Javascripts -->
+    <script type="text/javascript" src="javascripts/main.js"></script>
+    <script>hyhyhy.from('#presentation', { bullets: "ol li, .bullet", hash: true, keys: true, fullscreen: true, progress: true, scale: true, state: true, touch: true });</script>
+</body>
+</html>
